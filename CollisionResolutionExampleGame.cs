@@ -82,6 +82,39 @@ public class CollisionResolutionExampleGame : Game
                     balls[j].Colliding = true;
 
                     // TODO: Handle collisions
+                    Vector2 collisionAxis = balls[i].Center - balls[j].Center;
+
+                    //undoes the motion made in the frame so the balls are no longer touching, preventing them from clipping into each other
+                    //solution is very clunky, better one would be to find the time the collision occured and then undo the collision
+                    //then reapply the extra time at the end  with the new direction
+                    balls[i].Center -= balls[i].Velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    balls[j].Center -= balls[j].Velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                    collisionAxis.Normalize();
+                    float angle = (float)System.Math.Acos(Vector2.Dot(collisionAxis, Vector2.UnitX));
+
+                    float m0 = balls[i].Mass;
+                    float m1 = balls[j].Mass;
+
+                    Vector2 u0 = Vector2.Transform(balls[i].Velocity, Matrix.CreateRotationZ(angle));
+                    Vector2 u1 = Vector2.Transform(balls[j].Velocity, Matrix.CreateRotationZ(angle));
+
+                    Vector2 v0;
+                    Vector2 v1;
+                    v0.X = ((m0-m1)/(m0+m1))*u0.X + ((2*m1)/(m0+m1)) * u1.X;
+                    v1.X = ((2*m0)/(m0+m1))*u0.X + ((m1-m0)/(m0+m1)) * u1.X;
+                    
+                    //because y axis is not the axis of collision, velocity in the y axis is the same as the initial velocity
+                    v0.Y = u0.Y;
+                    v1.Y = u1.Y;
+
+                    //need to transform back make the calculated velocities the new velocities
+                    balls[i].Velocity = Vector2.Transform(v0, Matrix.CreateRotationZ(-angle));
+                    balls[j].Velocity = Vector2.Transform(v1, Matrix.CreateRotationZ(-angle));
+
+                    //prevents the balls from getting stuck in each other by moving their center a little
+                    balls[i].Center -= balls[i].Velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    balls[j].Center -= balls[j].Velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
                 }
             }
